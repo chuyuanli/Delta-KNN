@@ -50,13 +50,26 @@ Coming soon...
 For additional prompt formats used in our paper, please refer to ```prompts.py```.
 
 ## Citation
-To appear in ACL 2025
 
 ```
-@article{li2025delta,
-  title={Delta-KNN: Improving Demonstration Selection in In-Context Learning for Alzheimer's Disease Detection},
-  author={Li, Chuyuan and Li, Raymond and Field, Thalia S and Carenini, Giuseppe},
-  journal={arXiv preprint arXiv:2506.03476},
-  year={2025}
+@inproceedings{li-etal-2025-delta,
+    title = "Delta-{KNN}: Improving Demonstration Selection in In-Context Learning for {A}lzheimer{'}s Disease Detection",
+    author = "Li, Chuyuan  and
+      Li, Raymond  and
+      Field, Thalia S.  and
+      Carenini, Giuseppe",
+    editor = "Che, Wanxiang  and
+      Nabende, Joyce  and
+      Shutova, Ekaterina  and
+      Pilehvar, Mohammad Taher",
+    booktitle = "Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = jul,
+    year = "2025",
+    address = "Vienna, Austria",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.acl-long.1253/",
+    doi = "10.18653/v1/2025.acl-long.1253",
+    pages = "25807--25826",
+    ISBN = "979-8-89176-251-0",
 }
 ```
