@@ -44,27 +44,31 @@ python3 inference.py data/demo/D001.json --icls 4 --delta_matrix delta_matrix.pk
 ```
 
 ### Delta Matrix construction
-~~Coming soon...~~
+The Delta Matrix is constructed in `calculate_delta_matrix.py`. The selection workflow that uses this matrix is in `deltaknn.py`.
 
-The main code for getting delta-knn selected demonstration and matrix construction is provided in `deltaknn.py`.
-To build your own delta matrix from scratch, you need:
-- Processed zero-shot and exhaustive one-shot files, stored in `'prediction/{dataset}/{model}/{prompt}_0-shot/*_processed.json'` and `'prediction/{dataset}/{model}/{prompt}_select-exhaustive_1-shot_5-fold/*_processed.json'` repo respectively.
-- Text embeddings, stored in `'data/embeddings/{dataset}/{embedding_model}/*_.npy'`.
+Script structure:
+- `calculate_delta_matrix.py`: computes the Delta Matrix from processed zero-shot and exhaustive one-shot prediction files, and can average matrices across multiple runs before saving.
+- `calculate_knn.py`: loads document embeddings and retrieves the `dk` nearest training examples for a target document.
+- `deltaknn.py`: combines the KNN-selected neighbors with the Delta Matrix to rank candidate demonstrations and select the final in-context examples.
 
-The zero-shot `*_processed.json` file looks like, where E001 is the test example:
+The current code expects two processed prediction files for the same document set:
+- Zero-shot predictions in `prediction/{dataset}/{model}/{prompt}_0-shot/*_processed.json`
+- Exhaustive one-shot predictions in `prediction/{dataset}/{model}/{prompt}_select-exhaustive_1-shot_5-fold/*_processed.json`
+
+The zero-shot `*_processed.json` file looks like this, where `E001` is the target example:
 
 ```
 {
     "E001": [
         "P", // gold label
         "Here's the step-by-step classification process:...", // model raw output
-        "P", // extracted pred label
-        0.7 // extracted pred probability
+        "P", // extracted predicted label
+        0.7 // extracted predicted probability
     ],
 }
 ```
 
-The one-shot `*_processed.json` file looks like, where E001 is the test example and E002 is the demonstration:
+The one-shot `*_processed.json` file looks like this, where `E001` is the target example and `E002` is the demonstration:
 ```
 {
     "E001_E002": [
@@ -78,6 +82,42 @@ The one-shot `*_processed.json` file looks like, where E001 is the test example 
     ],
 }
 ```
+
+For each ordered pair `(target_doc, demo_doc)`, the code computes:
+
+```text
+delta(target_doc, demo_doc) =
+    one_shot_correct_class_score(target_doc, demo_doc)
+    - zero_shot_correct_class_score(target_doc)
+```
+
+where:
+- `correct_class_score = predicted_probability` if the predicted label matches the gold label
+- `correct_class_score = 1 - predicted_probability` otherwise
+
+If `target_doc == demo_doc`, the value is set to `NaN`.
+
+The matrix returned by `calculate_delta_matrix()` is transposed before saving, so its shape is:
+- rows: candidate demonstration documents
+- columns: target documents
+
+`doc_index` stores the document order used for both axes.
+
+In the current implementation:
+- `calculate_delta_matrix.py` builds and stores the matrix at `data/doc_delta/{dataset}/{model}/delta-1/`
+- `deltaknn.py` loads that matrix, keeps only rows for the available training documents, then keeps only columns corresponding to the KNN-selected neighbors for the current test document
+- the final demonstration ranking is based on the mean delta score across those selected columns
+
+Embeddings are not used to construct the Delta Matrix itself. They are only used later by `calculate_knn.py` to select the `dk` nearest neighbors from:
+- `data/embeddings/{dataset_train}/{embedding_model}/*.npy`
+- `data/embeddings/{dataset_test}/{embedding_model}/*.npy`
+
+Important implementation notes:
+- We recommend running the zero-shot and exhaustive one-shot inference multiple times with different trial/seed settings, then averaging the resulting Delta Matrices. This helps mitigate model variation and makes the stored matrix more stable. The current `store_delta_matrix_and_index()` implementation already supports averaging multiple trial-seed pairs before saving.
+- `prompt` in `calculate_delta_matrix.py` is currently a placeholder: `your_prompt_id`
+- `embedding_model` in `calculate_knn.py` is currently a placeholder: `your_embedding_model_name`
+- the example code in `deltaknn.py` is currently specialized for the ADReSS naming convention, where patient files start with `E` and healthy control files start with `H`
+- dataset/path naming is not fully standardized in the repo yet: the code uses `adress-train` as the dataset name, while raw files are read from `adress_train_raw`
 
 
 ### More Prompt formats
