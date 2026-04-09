@@ -44,7 +44,41 @@ python3 inference.py data/demo/D001.json --icls 4 --delta_matrix delta_matrix.pk
 ```
 
 ### Delta Matrix construction
-Coming soon...
+~~Coming soon...~~
+
+The main code for getting delta-knn selected demonstration and matrix construction is provided in `deltaknn.py`.
+To build your own delta matrix from scratch, you need:
+- Processed zero-shot and exhaustive one-shot files, stored in `'prediction/{dataset}/{model}/{prompt}_0-shot/*_processed.json'` and `'prediction/{dataset}/{model}/{prompt}_select-exhaustive_1-shot_5-fold/*_processed.json'` repo respectively.
+- Text embeddings, stored in `'data/embeddings/{dataset}/{embedding_model}/*_.npy'`.
+
+The zero-shot `*_processed.json` file looks like, where E001 is the test example:
+
+```
+{
+    "E001": [
+        "P", // gold label
+        "Here's the step-by-step classification process:...", // model raw output
+        "P", // extracted pred label
+        0.7 // extracted pred probability
+    ],
+}
+```
+
+The one-shot `*_processed.json` file looks like, where E001 is the test example and E002 is the demonstration:
+```
+{
+    "E001_E002": [
+        "P",
+        "Here's the step-by-step analysis: MODEL ANALTSIS AND PREDICTION...",
+        [
+            "E002"
+        ],
+        "P",
+        0.8
+    ],
+}
+```
+
 
 ### More Prompt formats
 For additional prompt formats used in our paper, please refer to ```prompts.py```.
