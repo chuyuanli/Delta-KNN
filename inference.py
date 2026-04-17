@@ -1,5 +1,6 @@
 import json
 import pickle
+import random
 import argparse
 import numpy as np
 from client import send_chat_request, send_embedding_request
@@ -38,6 +39,7 @@ if __name__ == "__main__":
     parser.add_argument('--delta_matrix', type=str, default='')
     parser.add_argument('--train_set', type=str, default='')
     parser.add_argument('--dk', type=int, default=13, help='Number of nearest neighbors to select from the delta matrix.')
+    parser.add_argument('--balanced_demo', action='store_true', help='Whether to select balanced examples from the delta matrix, i.e., equal number of H and P examples.')
     args = parser.parse_args()
     
     openai_api_key = "EMPTY"
@@ -53,7 +55,7 @@ if __name__ == "__main__":
         n_icls = int(args.icls[0])
         with open(args.delta_matrix, 'rb') as f:
             delta_matrix = pickle.load(f)
-            delta_indices = delta_matrix['delta_indices']
+            delta_indices = delta_matrix['delta_indices'] # a dictionary mapping doc name to class label (H or P), eg {"S001": "H"}
             delta_matrix = delta_matrix['delta_matrix']
 
         doci_embedding = send_embedding_request(targetdoc)
@@ -73,9 +75,22 @@ if __name__ == "__main__":
         row_mean = np.nanmean(delta_matrix, axis=1)
         sorted_row_indices = np.argsort(row_mean)[::-1]
 
+        if n_icls > len(sorted_row_indices):
+            raise ValueError(f"Requested {n_icls} ICL examples, but only {len(sorted_row_indices)} are available.")
+        
+        # handle balanced demo selection if specified, otherwise select top n_icls examples based on delta scores
+        _doc_names = list(delta_indices.keys())
+        if not args.balanced_demo:
+            icl_names = [_doc_names[idx] for idx in sorted_row_indices[:n_icls]]
+        else:
+            assert n_icls % 2 == 0, "Balanced demo selection requires an even number of ICL examples."
+            sorted_icl_names = [_doc_names[idx] for idx in sorted_row_indices]
+            patient_names = [name for name in sorted_icl_names if delta_indices[name] == 'P']
+            healthy_names = [name for name in sorted_icl_names if delta_indices[name] == 'H']
+            icl_names = patient_names[:n_icls//2] + healthy_names[:n_icls//2]
+        random.shuffle(icl_names)
         icls = []
-        for i in range(n_icls):
-            icl_name = list(delta_indices.keys())[sorted_row_indices[i]]
+        for icl_name in icl_names:
             icls.append(args.train_set + '/' + icl_name + '.json')
             icls.append(delta_indices[icl_name])
 
@@ -110,4 +125,3 @@ if __name__ == "__main__":
     print('*'*50)
     print(output)
     
-
