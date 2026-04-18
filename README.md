@@ -54,6 +54,8 @@ Script structure:
 The current code expects two processed prediction files for the same document set:
 - Zero-shot predictions in `prediction/{dataset}/{model}/{prompt}_0-shot/*_processed.json`
 - Exhaustive one-shot predictions in `prediction/{dataset}/{model}/{prompt}_select-exhaustive_1-shot_5-fold/*_processed.json`
+  - `{prompt}` is a user-defined identifier for the prompt format. It must be used consistently in your prediction filenames. For example, if your prompt combines `INST_SYS_ROLE_CTX_LING` and `INST_USR_PROB_COT_ANS` in `prompts.py`, you might name it `Sall-Ucot`.
+
 
 The zero-shot `*_processed.json` file looks like this, where `E001` is the target example:
 
@@ -114,7 +116,7 @@ Embeddings are not used to construct the Delta Matrix itself. They are only used
 
 Important implementation notes:
 - We recommend running the zero-shot and exhaustive one-shot inference multiple times with different trial/seed settings, then averaging the resulting Delta Matrices. This helps mitigate model variation and makes the stored matrix more stable. The current `store_delta_matrix_and_index()` implementation already supports averaging multiple trial-seed pairs before saving.
-- `prompt` in `calculate_delta_matrix.py` is currently a placeholder: `your_prompt_id`
+- `prompt` in `calculate_delta_matrix.py` is currently a placeholder: `your_prompt_id`. Set it to the same identifier used in your 0-shot and 1-shot prediction filenames.
 - `embedding_model` in `calculate_knn.py` is currently a placeholder: `your_embedding_model_name`
 - the example code in `deltaknn.py` is currently specialized for the ADReSS naming convention, where patient files start with `E` and healthy control files start with `H`
 - dataset/path naming is not fully standardized in the repo yet: the code uses `adress-train` as the dataset name, while raw files are read from `adress_train_raw`
